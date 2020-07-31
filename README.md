@@ -187,3 +187,12 @@ const Input: React.FC<InputProps> = ({ icon: Icon, ...rest }) => (
 export default Input;
 
 ```
+
+
+---
+
+## Página de SignUp
+
+- Basicamente criar a pasta `src/pages/SignUp` e copiar a estrutura de `SignIn`
+
+---
