@@ -296,3 +296,42 @@ export default Input;
 ```
 
 - Mais detalhes estão nos comentários
+
+---
+
+## Estilização dos inputs
+
+- Melhoramos a estilização do component `src/component/Input` para quando possuí focus, detalhes importantes para fazer isso:
+
+- No arquivo `src/component/Input/index.tsx` foi adicionado o seguinte:
+
+```tsx
+// ...
+const [isFocused, setIsFocused] = useState(false);
+// ...
+<Container isFocused={isFocused}>
+{/* ... */}
+```
+
+- Porém no style desse  `Container` ele não possuí essa propriedade pois ele é uma div, dessa forma o typescript irá acusar erro, para ajustar isso adicionamos uma interface e extendemos ela para o component div assim no arquivo `src/components/Input/styles.ts`:
+
+```ts
+interface ContainerProps {
+  isFocused: boolean;
+}
+
+export const Container = styled.div<ContainerProps>`
+  ${/* .. */}
+
+`;
+```
+
+
+---
+
+#### Lei de function dentro de component
+
+**Sempre que for criar uma function dentro de um component, utilizar o useCallback()**
+
+
+---
