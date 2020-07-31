@@ -196,3 +196,103 @@ export default Input;
 - Basicamente criar a pasta `src/pages/SignUp` e copiar a estrutura de `SignIn`
 
 ---
+
+
+## Utilizar o unform
+
+- Para trabalhar com formulário de uma forma performática podemos utilizar uma opção que no caso é o unform, ou até mesmo outras libs como o formik, nesse projeto iremos o unform:
+
+
+```bash
+yarn add @unform/core @unform/web
+```
+
+---
+
+- Na página `src/SignUp` adicione a tag `Form` o seguinte:
+
+```tsx
+import { Form } from '@unform/web';
+
+// ...
+
+const SignUp: React.FC = () => {
+  const handleSubmit = (data: Record<string, string>) : void => {
+    console.log(data);
+  };
+
+  return (
+    <Container>
+      <Background />
+      <Content>
+        <img src={logoImg} alt="GoBarber" />
+
+        <Form onSubmit={handleSubmit}>
+          <h1>Faça seu cadastro</h1>
+          <Input name="name" icon={FiUser} placeholder="Nome" />
+          <Input name="email" icon={FiMail} placeholder="E-mail" />
+          <Input name="password" icon={FiLock} type="password" placeholder="Senha" />
+          <Button type="submit">Cadastrar</Button>
+        </Form>
+
+        <a href="login">
+          <FiArrowLeft />
+          Voltar para logon
+        </a>
+
+      </Content>
+    </Container>
+  );
+};
+```
+
+
+---
+
+- No arquivo `src/components/Input` vamos adicionar o `@unform/core`, e adicionar mais alguns parametros:
+
+```tsx
+import React, { useEffect, useRef } from 'react';
+import { useField } from '@unform/core';
+
+// ...
+
+// utilizamos a prop name
+const Input: React.FC<InputProps> = ({ name, icon: Icon, ...rest }) => {
+
+  // Adicionar referencia ao input
+  const inputRef = useRef(null);
+
+  const {
+    fieldName, defaultValue, error, registerField,
+  } = useField(name);
+
+  useEffect(() => {
+    // Registrar o input no unform
+    registerField({
+      name: fieldName,
+      ref: inputRef.current,
+    // No caso seria qual propriedade queremos pegar do elemento da DOM
+      path: 'value',
+    });
+  }, [fieldName, registerField]);
+
+  // O defaultValue utilizamos para quando queremos iniciar o form com um valor padrão:
+
+  /*
+    <Form initialData={{name: 'Nome', email: 'email@email.com'}}>
+  */
+
+  return (
+    <Container>
+      { Icon && <Icon size={20} />}
+      <input defaultValue={defaultValue} ref={inputRef} {...rest} />
+    </Container>
+  );
+};
+
+export default Input;
+
+```
+
+- Mais detalhes estão nos comentários
