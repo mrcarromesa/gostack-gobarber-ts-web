@@ -373,3 +373,96 @@ const handleSubmit = useCallback(async (data: Record<string, string>) => {
 ```
 
 - utilizamos o `{ abortEarly: false }` para o yup não parar no primeiro erro mas validar tudo.
+
+
+---
+
+## Exibindo os erros
+
+- Vamos adicionar os erros para cada input que tiver um erro,
+
+- Antes iremos criar uma function para tratar as mensagens dos erros em `src/utils/getValidatorErros.ts`:
+
+```ts
+import { ValidationError } from 'yup';
+
+
+// Retrata um objeto de strings
+// no qual a key do object é uma string e o valor da key é uma string
+interface Erros {
+  [key: string]: string;
+}
+
+const getValidatorErros = (erros: ValidationError) : Erros => {
+  const validators: Erros = {};
+
+  erros.inner.forEach((error) => {
+    validators[error.path] = error.message;
+  });
+
+  return validators;
+};
+
+export default getValidatorErros;
+
+```
+
+- Para isso precisamos pegar a referencia do formulário e setar os erros recebido do yup:
+
+```tsx
+import * as Yup from 'yup';
+
+import { FormHandles } from '@unform/core';
+
+import getValidatorErros from '~/utils/getValidatorErros';
+
+// ...
+
+const formRef = useRef<FormHandles>(null);
+
+// ...
+
+const handleSubmit = useCallback(async (data: Record<string, string>) => {
+    try {
+      formRef.current?.setErrors({});
+      const schema = Yup.object().shape({
+        name: Yup.string().required('Nome obrigatório'),
+        email: Yup.string().required('E-mail obrigatório').email('Digite um e-mail válido'),
+        password: Yup.string().min(6, 'No mínimo 6 digitos'),
+      });
+
+      await schema.validate(data, { abortEarly: false });
+    } catch (err) {
+      const erros = getValidatorErros(err);
+
+      // precisamos desabilitar no eslint: "no-unused-expressions": "off"
+      // Pois ele acha que estamos tentando realizar um if ternario...
+      formRef.current?.setErrors(erros);
+
+      console.log(err);
+    }
+  }, []);
+
+<Form ref={formRef} onSubmit={handleSubmit}>
+
+
+```
+
+**No eslintrc.json precisamos altarar uma regra**
+
+```json
+"no-unused-expressions": "off"
+```
+
+- Por fim no componente `src/components/Input` adicionamos `{error}`:
+
+```tsx
+<input
+  onFocus={handleInputFocus}
+  onBlur={handleInputBlur}
+  defaultValue={defaultValue}
+  ref={inputRef}
+  {...rest}
+/>
+{error}
+```
