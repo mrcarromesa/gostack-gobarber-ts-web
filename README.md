@@ -335,3 +335,41 @@ export const Container = styled.div<ContainerProps>`
 
 
 ---
+
+## Validação de formulário
+
+- Instalar o yup:
+
+```bash
+yarn add yup
+```
+
+- Instalar as tipagens:
+
+```bash
+yarn add @types/yup -D
+```
+
+- Utilizamos o yup em `src/pages/SignUp`:
+
+```tsx
+import * as Yup from 'yup';
+
+// ...
+
+const handleSubmit = useCallback(async (data: Record<string, string>) => {
+  try {
+    const schema = Yup.object().shape({
+      name: Yup.string().required('Nome obrigatório'),
+      email: Yup.string().required('E-mail obrigatório').email('Digite um e-mail válido'),
+      password: Yup.string().min(6, 'No mínimo 6 digitos'),
+    });
+
+    await schema.validate(data, { abortEarly: false });
+  } catch (err) {
+    console.log(err);
+  }
+}, []);
+```
+
+- utilizamos o `{ abortEarly: false }` para o yup não parar no primeiro erro mas validar tudo.
