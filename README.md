@@ -466,3 +466,626 @@ const handleSubmit = useCallback(async (data: Record<string, string>) => {
 />
 {error}
 ```
+
+
+---
+
+## Herança de estilo de outros componentes
+
+- Um exemplo foi feito, criando o componente `src/components/Tooltip`:
+
+```tsx
+import React from 'react';
+
+import { Container } from './styles';
+
+interface TooltipProps {
+  title: string;
+  className?: string; // Quando iremos estilizar o componente em outro css precisamos inserir essa prop, pois a estilização em herança é feita pela class
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ title, className, children }) => {
+  const a = [];
+
+  return (
+    {/* Quando iremos estilizar o component em outro css precisamos inserir essa prop, pois a estilização em herança é feita pela class */}
+    <Container className={className}>
+      {children}
+      <span>{title}</span>
+    </Container>
+
+  );
+};
+
+export default Tooltip;
+
+
+```
+
+- Por fim dentro de `src/components/Input/styles`:
+
+```ts
+import Tooltip from '~/components/Tooltip';
+
+//...
+export const Error = styled(Tooltip)`
+  height: 20px;
+  margin-left: 16px;
+  svg {
+    margin: 0;
+  }
+`;
+```
+
+---
+
+## Hacking para centralizar horizontalmente o position absolute
+
+- No arquivo `src/components/Tooltip/styles.ts`
+
+```ts
+position: absolute;
+left: 50%;
+transform: translateX(-50%);
+```
+
+---
+
+## Hacking para fazer triangulo no css
+
+```ts
+span::before {
+  content: '';
+  border-style: solid;
+  border-color: #ff9000 transparent;
+  border-width: 6px 6px 0 6px;
+  top: 100%;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+```
+
+---
+
+## Como fazer o component Tootilp
+
+- Detalhes no arquivo `src/components/Tooltip` e no `src/componets/Input` verificar a Tag Error e seu estilo
+
+---
+
+## Context API
+
+- Inicialmente criar o arquivo `src/context/AuthContext.ts`
+
+- Nesse arquivo definimos o nosso context:
+
+```ts
+import { createContext } from 'react';
+
+interface AuthContextData {
+  name: string;
+}
+
+const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export default AuthContext;
+
+```
+
+- Inserimos ele em `src/App.tsx` para que todos que estejam dentro dele possam acessar:
+
+```tsx
+import AuthContext from '~/context/AuthContext';
+
+const App: React.FC = () => (
+  <>
+    <AuthContext.Provider value={{ name: 'Meu nome' }}>
+      <SignIn />
+    </AuthContext.Provider>
+    <GlobalStyle />
+  </>
+);
+
+export default App;
+```
+
+- E no arquivo `src/pages/SignIn` por exemplo podemos obter os valores do context:
+
+```tsx
+import React, { useContext } from 'react';
+//...
+
+import AuthContext from '~/context/AuthContext';
+
+const SignIn: React.FC = () => {
+  const { name } = useContext(AuthContext);
+
+  console.log(name);
+  //...
+
+};
+```
+
+---
+
+## Ajustes no context Api
+
+- Realizamos ajustes em `src/contex/AuthContext.tsx`:
+
+```tsx
+import React, { createContext, useCallback } from 'react';
+
+interface AuthContextData {
+  name: string;
+  signIn(): void
+}
+
+export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export const AuthProvider: React.FC = ({ children }) => {
+  const signIn = useCallback(() => {}, []);
+
+  return (
+    <AuthContext.Provider value={{ name: 'Rodo', signIn }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+```
+
+- E agora em `src/App.tsx` chamamos o AuthProvider:
+
+```tsx
+import React, { createContext, useCallback } from 'react';
+
+interface AuthContextData {
+  name: string;
+  signIn(): void
+}
+
+export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export const AuthProvider: React.FC = ({ children }) => {
+  const signIn = useCallback(() => {}, []);
+
+  return (
+    <AuthContext.Provider value={{ name: 'Rodo', signIn }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+```
+
+- Vamos deixar instalado o `axios`:
+
+```bash
+yarn add axios
+```
+
+- Criar o arquivo `src/services/api.ts` para definir configurações do axios
+
+---
+
+### useState utilizando function ao inicializar
+
+- Em geral para iniciar um useState sob alguma condição utilizamos o useEffect, porém nem sempre precisamos utiliza-lo ainda mais que é necessário definir uma série de dependencias nele que podem ser alteradas causando chamadas desnecessárias a ele, dessa forma podemos utilizar uma function que retorna o valor inicial do nosso estado conforme alguma condição, um exemplo disso temos em `src/context/AuthContext.tsx`:
+
+```tsx
+const [data, setData] = useState<IAuthState>(() => {
+    const token = localStorage.getItem('@GoBarber:token');
+    const user = localStorage.getItem('@GoBarber:user');
+
+    if (token && user) {
+      return { token, user: JSON.parse(user) };
+    }
+
+    return {} as IAuthState;
+  });
+```
+
+---
+
+## Hook do context
+
+- Para não precisar importar o useContext do React e o Provider toda vez que iremos utilizar o context, podemos utilizar o recurso de criação de hooks, que basicamente são functions que não retorna um component em si, mas sim functions encapsuladas, um exemplo da criação do hook temos em `src/context/AuthContext.tsx`:
+
+```tsx
+const useAuth = (): AuthContextData => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error('useAuth must be used withn an AuthProvider');
+  }
+
+  return context;
+};
+
+export { AuthProvider, useAuth };
+```
+
+- Por fim utilizamos o hook em `src/pages/SignIn`:
+
+```tsx
+// ...
+import { useAuth } from '~/context/AuthContext';
+// ...
+const { user, signIn } = useAuth();
+// ...
+```
+
+---
+
+## Criação de Toas
+
+- Foi criado um component toast para aviso ao usuário em `src/components/ToastContainer`
+
+- Algo interessantes sobre a estilização com o typescript, em `src/components/ToastContainer/styles.ts`:
+
+```ts
+
+// Criada interface para definir props aceitas pelo component
+interface ToastProps {
+  type? : 'success' | 'error' | 'info';
+  hasDescription: boolean;
+}
+
+// Definido css adicional dependendo do type que for passado para o component
+const toastTypeVariations = {
+  info: css`
+    background: #ebf8ff;
+    color: #3172b2;
+  `,
+  success: css`
+    background: #e6fffa;
+    color: #2e656a;
+  `,
+  error: css`
+    background: #fddede;
+    color: #c53030;
+  `,
+};
+
+// aplicando o type conforme for enviado pelo component <Toast type="success" hasDescription={false}>
+export const Toast = styled.div<ToastProps>`
+  ${(props) => toastTypeVariations[props.type || 'info']}
+`;
+```
+
+
+## Context para o Toast
+
+- Basicamente o mínimo para criação de um context com hook:
+
+```tsx
+import React, { createContext, useContext, useCallback } from 'react';
+
+interface ToastContextData {
+  addToast(): void;
+  removeToast(): void;
+}
+
+const ToastContext = createContext<ToastContextData>({} as ToastContextData);
+
+const ToastProvider: React.FC = ({ children }) => {
+  const addToast = useCallback(() => {
+    console.log('addToast');
+  }, []);
+
+  const removeToast = useCallback(() => {
+    console.log('removeToast');
+  }, []);
+
+  return (
+
+    <ToastContext.Provider value={{ addToast, removeToast }}>
+      {children}
+    </ToastContext.Provider>
+  );
+};
+
+const useToast = (): ToastContextData => {
+  const context = useContext(ToastContext);
+
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+
+  return context;
+};
+
+export { ToastProvider, useToast };
+
+```
+
+
+---
+
+## Context Dentro do App
+
+- Para o código do `App.tsx` ficar mais limpo, para não ter tanto component de provider, podemos utilizar um component que conterá todos os providers e esse componente irá encapsular o App.
+
+- Crie o arquivo `src/hooks/index.tsx`:
+
+```tsx
+import React from 'react';
+
+import { AuthProvider } from './auth';
+import { ToastProvider } from './toast';
+
+const AppProvider: React.FC = ({ children }) => (
+  <AuthProvider>
+    <ToastProvider>
+      {children}
+    </ToastProvider>
+  </AuthProvider>
+);
+
+export default AppProvider;
+
+```
+
+- Por fim dentro de `src/App.tsx` adicionamos o Provider
+
+```tsx
+import React from 'react';
+import GlobalStyle from '~/styles/global';
+import SignIn from '~/pages/SignIn';
+import SignUp from '~/pages/SignUp';
+
+import AppProvider from '~/hooks';
+
+const App: React.FC = () => (
+  <>
+    <AppProvider>
+      <SignIn />
+    </AppProvider>
+
+    <GlobalStyle />
+  </>
+);
+
+export default App;
+
+```
+
+
+---
+
+- Para utilizar um id unico que iremos utilizar no toast iremos instalar o uuid:
+
+```bash
+yarn add uuidv4
+```
+
+---
+
+- Uma forma de obter o state anterior sem precisar ter o primeiro elemento do useState como dependencia de function podemos utilizar o recurso de function do useState, um exemplo disso temos em `src/hooks/toast.tsx`:
+
+```tsx
+const [messages, setMessages] = useState<ToastMessage[]>([]);
+
+const addToast = useCallback(({ type, title, description }: Omit<ToastMessage, 'id'>) => {
+  const id = uuid();
+
+  const toast = {
+    id,
+    type,
+    title,
+    description,
+  };
+
+  // Obtendo o valor anterior do estado
+  setMessages((state) => [...state, toast]);
+}, []);
+```
+
+---
+
+- Podemos também exportar interface para serem reutilizada em outros arquivos, um exemplo disso está em `src/hooks/toast.tsx` e `src/components/ToastContainer/index.tsx`
+
+
+---
+
+## Animações com React
+
+- Uma forma de animar componentes em react é utilizando uma dependência react-sptring:
+
+```bash
+yarn add react-spring
+```
+
+
+- No elemento Toast especificamente iremos utilizar o `useTransition` do react-spring
+- [useTransiction](https://www.react-spring.io/docs/hooks/use-transition)
+
+- Um exemplo de como está sendo utilizado está em `src/components/ToastContainer/index.tsx`:
+
+```tsx
+// ...
+import { useTransition } from 'react-spring';
+// ...
+
+const messageWithTransitions = useTransition(
+  messages, // items[{}]
+  (message) => message.id, // map do item para obter uma chave unica
+  // css do spring
+  {
+    from: { right: '-120%', opacity: 0, transform: 'rotate(180deg)' }, // inicio
+    enter: { right: '0%', opacity: 1, transform: 'rotate(0deg)' }, // ao entrar
+    leave: { right: '-120%', opacity: 0, transform: 'rotate(180deg)' }, // ao sair, ou quando objeto for deixar de existir
+
+  },
+);
+
+
+// Adicionaodo a prop style no component Toast
+// ...
+{messageWithTransitions.map(({ item, key, props }) => (
+  <Toast key={key} style={props} message={item} />
+))}
+// ...
+```
+
+- Por fim em `src/components/ToastContainer/Toast/` adicionamos o seguinte:
+
+```tsx
+// ...
+<Container
+      type={message.type}
+      hasDescription={!!message.description}
+      style={style}
+    >
+// ...
+```
+
+**Importante**
+
+- E para poder funcionar o react spring, ele precisa estar no elment `animated` conforme `src/components/ToastContainer/Toast/styles.ts`:
+
+```ts
+// ...
+import { animated } from 'react-spring';
+
+// ...
+
+export const Container = styled(animated.div)<ContainerProps>`
+  ${/* ... */}
+`;
+
+// ...
+```
+
+**/Importante**
+
+
+---
+
+## Rotas
+
+- Inicialmente instale a dependencia:
+
+```bash
+yarn add react-router-dom
+```
+
+- Instalar types:
+
+
+```bash
+yarn add @types/react-router-dom -D
+```
+
+- Criar a pasta `src/routes` e por fim o arquivo `src/routes/index.tsx`
+
+```tsx
+import React from 'react';
+import { Switch, Route } from 'react-router-dom';
+
+import SignIn from '~/pages/SignIn';
+import SignUp from '~/pages/SignUp';
+
+const Routes: React.FC = () => (
+  <Switch>
+    <Route path="/" exact component={SignIn} />
+    <Route path="/signup" component={SignUp} />
+  </Switch>
+);
+
+export default Routes;
+
+```
+
+- E no arquivo `src/App.tsx` adicionar as rotas:
+
+```tsx
+import React from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import GlobalStyle from '~/styles/global';
+import Routes from './routes';
+
+import AppProvider from '~/hooks';
+
+const App: React.FC = () => (
+  <Router>
+    <AppProvider>
+      <Routes />
+    </AppProvider>
+
+    <GlobalStyle />
+  </Router>
+);
+
+export default App;
+
+```
+
+---
+
+## Rota Dashboard
+
+- Criar a página `src/pages/Dashboard`
+
+
+### Rotas privadas
+
+- Criar o arquivo `src/routes/Route.tsx`
+
+```tsx
+import React from 'react';
+import { Route as ReactDOMRoute, RouteProps as ReactDOMRouteProps, Redirect } from 'react-router-dom';
+
+import { useAuth } from '~/hooks/auth';
+
+interface RouteProps extends ReactDOMRouteProps {
+  isPrivate?: boolean;
+  component: React.ComponentType; // Para utilizar o component no formato de nome e não no formato de Tag <Component/>
+}
+
+const Route: React.FC<RouteProps> = ({ isPrivate = false, component: Component, ...rest }) => {
+  const { user } = useAuth();
+
+// utilizamos o location para nessas troca de rotas não perder o histórico
+  return (
+    <ReactDOMRoute
+      {...rest}
+      render={({ location }) => (isPrivate === !!user ? (
+        <Component />
+      ) : (
+        <Redirect to={{ pathname: isPrivate ? '/' : '/dashboard', state: { from: location } }} />
+      ))}
+    />
+  );
+};
+
+export default Route;
+
+```
+
+- Por fim no arquivo `src/routes/index.tsx` ajustamos:
+
+```tsx
+import React from 'react';
+import { Switch } from 'react-router-dom';
+
+import Route from './Route';
+
+import SignIn from '~/pages/SignIn';
+import SignUp from '~/pages/SignUp';
+
+import Dashboard from '~/pages/Dashboard';
+
+const Routes: React.FC = () => (
+  <Switch>
+    <Route path="/" exact component={SignIn} />
+    <Route path="/signup" component={SignUp} />
+
+    <Route path="/dashboard" component={Dashboard} isPrivate />
+  </Switch>
+);
+
+export default Routes;
+
+```
