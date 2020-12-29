@@ -1,5 +1,5 @@
 import React, {
-  useEffect, useRef, useState, useCallback,
+  useEffect, useRef, useState, useCallback, CSSProperties,
 } from 'react';
 import { IconBaseProps } from 'react-icons';
 import { FiAlertCircle } from 'react-icons/fi';
@@ -11,9 +11,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   name: string;
   // icon?: React.ComponentType<{size: string}>;
   icon?: React.ComponentType<IconBaseProps>;
+  containerStyle?: CSSProperties;
 }
 
-const Input: React.FC<InputProps> = ({ name, icon: Icon, ...rest }) => {
+const Input: React.FC<InputProps> = ({
+  name, icon: Icon, containerStyle = {}, ...rest
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [isFocused, setIsFocused] = useState(false);
@@ -45,7 +48,7 @@ const Input: React.FC<InputProps> = ({ name, icon: Icon, ...rest }) => {
   }, []);
 
   return (
-    <Container isErrored={!!error} isFilled={isFilled} isFocused={isFocused}>
+    <Container style={containerStyle} isErrored={!!error} isFilled={isFilled} isFocused={isFocused}>
       { Icon && <Icon size={20} />}
       <input
         onFocus={handleInputFocus}

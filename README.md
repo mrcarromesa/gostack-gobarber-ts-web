@@ -1089,3 +1089,23 @@ const Routes: React.FC = () => (
 export default Routes;
 
 ```
+
+---
+
+## Anexar um atributo a um type existente
+
+Exemplo disso está em `src/components/Button/index.tsx`:
+
+```ts
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  loading?: boolean;
+};
+```
+
+---
+
+## Lib para calendario
+
+```shell
+yarn add react-day-picker
+```
