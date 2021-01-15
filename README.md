@@ -1111,3 +1111,253 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 ```shell
 yarn add react-day-picker
 ```
+
+---
+
+## Testes
+
+### O que testar no frontend?
+
+- Em geral paginas e components que contem regras de negocios
+- Iremos testar o comportamento do usuário testes end to end
+- Dessa forma não se faz necessário o TDD para o frontend
+
+
+### Ferramenta utilizadas
+
+- [Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+Por padrão ela já vem instalada como dependencia do projeto em react
+
+- Para o native utilizamos o [RN Testing Library](https://github.com/callstack/react-native-testing-library)
+
+- [react-hooks-testing-library](https://react-hooks-testing-library.com/)
+Testa os hooks que criamos
+
+### Para começar...
+
+- Para utilizar o root import adicione o seguinte no `package.json`:
+
+```json
+"jest": {
+    "moduleNameMapper": {
+      "^~/(.*)": "<rootDir>/src/$1"
+    }
+  },
+```
+
+- Criar uma pasta `src/__tests__` será armazenados os tests
+- Criamos 3 pastas também:
+- `src/__tests_/components`
+- `src/__tests_/pages`
+- `src/__tests_/hooks`
+
+- **Todo teste que testa um component deve ter a extensão `.tsx`**
+
+- Algumas functions do jest ficam em erro para resolver isso, adicione ao `.eslintrc.json`:
+
+```json
+"env": {
+      "browser": true,
+      "es6": true,
+      "jest": true
+  },
+```
+
+- Basicamente adicionar o `jest: true` dentro de `env`
+
+- Para ver o que está sendo reenderizado podemos utilizar o debug da seguinte forma:
+
+```tsx
+import { render } from '@testing-library/react';
+import React from 'react';
+import SignIn from '~/pages/SignIn';
+
+describe('SignIn Page', () => {
+  it('shoud be able to sign in', () => {
+    const { debug } = render(<SignIn />);
+    debug();
+  });
+});
+
+```
+
+### Coverage Report
+
+- Utilizamos para verificar a cobertura dos testes
+- Podemos definir quais arquivos deverão ser verificados pelo coverage report, em `package.json`
+
+```json
+"jest": {
+    "verbose": true,
+    "moduleNameMapper": {
+      "^~/(.*)": "<rootDir>/src/$1"
+    },
+    "collectCoverageFrom": [
+      "src/pages/**/*.tsx",
+      "src/components/**/**/*.tsx",
+      "src/hooks/*.tsx",
+      "!src/hooks/index.tsx"
+    ]
+  },
+```
+
+- Dentro de `collectCoverageFrom` podemos inserir quais arquivos devem ser verificados pelo coverage e quais deverão ser ignorados como no caso do:
+`"!src/hooks/index.tsx"`
+
+- Por fim executamos o seguinte comando:
+
+```shell
+yarn test --coverage --watchAll false
+```
+
+--coverage: para gerar os relatórios
+--watchAll false : para não ficar executando toda vez que alteramos um test, ele executa apenas uma vez.
+
+
+---
+
+### Testando o login
+
+- Um teste inicial é da tela de login `SignIn.tsx`
+
+```tsx
+const mockedHistoryPush = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  useHistory: () => ({
+    push: mockedHistoryPush,
+  }),
+  Link: ({ children } : { children: React.ReactNode }) => children,
+}));
+
+describe('SignIn Page', () => {
+  it('shoud be able to sign in', () => {
+    const { getByPlaceholderText, getByText } = render(<SignIn />);
+
+    const emailField = getByPlaceholderText('E-mail');
+    const passwordField = getByPlaceholderText('Senha');
+    const buttonElement = getByText('Entrar');
+
+    fireEvent.change(emailField, { target: { value: 'johndoe@example.com' } });
+    fireEvent.change(passwordField, { target: { value: '123456' } });
+    fireEvent.click(buttonElement);
+
+    expect(mockedHistoryPush).toHaveBeenCalledWith('/dashboard');
+  });
+});
+```
+
+- Primeiro realizamos um mock do `useHistory` e do `Link`, do `useHistory` fizemos um pouco diferente pois precisamos da function `useHistory().push`
+
+- Para obter os elementos em tela podemos realizar de várias formas, no caso utilizamos o `getByPlaceholderText`, e para definir o valor para os campos de texto precisamos fazer isso:
+
+```tsx
+fireEvent.change(emailField, { target: { value: 'johndoe@example.com' } });
+```
+
+- Por fim para simular o clique do botão realizamos assim:
+
+```tsx
+fireEvent.click(buttonElement);
+```
+
+---
+
+#### Ajustes para funcionar o `waitFor`:
+
+- Instalar:
+
+```shell
+yarn add jest-environment-jsdom-sixteen -D
+```
+
+- Adicionar no `package.json`:
+
+```json
+"test": "react-app-rewired test --env=jest-environment-jsdom-sixteen",
+```
+
+- Porém para executar o --coverage precisei realizar o downgrade do `react-scripts` para versão 3.4.0 e alterar também a versão do typescript para versão `3.8.3`, bem como as dependencias:
+
+```json
+"@testing-library/jest-dom": "^5.11.9",
+"@testing-library/react": "^11.2.3",
+```
+
+---
+
+### waitFor
+
+- Utilizamos quando precisamos que uma determinada ação que pode demorar seja aguardada:
+
+```tsx
+const { getByPlaceholderText, getByText } = render(<SignIn />);
+
+const emailField = getByPlaceholderText('E-mail');
+const passwordField = getByPlaceholderText('Senha');
+const buttonElement = getByText('Entrar');
+
+fireEvent.change(emailField, { target: { value: 'johndoe@example.com' } });
+fireEvent.change(passwordField, { target: { value: '123456' } });
+fireEvent.click(buttonElement);
+
+await waitFor(() => { expect(mockedHistoryPush).toHaveBeenCalledWith('/'); });
+```
+
+
+---
+
+## Teste de hooks
+
+- Primeiramente instale o seguinte:
+
+```shell
+yarn add @testing-library/react-hooks -D
+```
+
+- Instalar também o seguinte:
+
+```shell
+yarn add react-test-renderer -D
+```
+
+- E depois iremos criar um test de hooks em `src/__tests__/hooks/auth.spec.tsx`
+- Nesse arquivo tem um exemplo de como testar hooks dentro da aplicação
+
+- Para testar os hooks precisamos do contexto:
+
+```tsx
+const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+```
+
+- Para isso utilizamos o `{ wrapper: CONTEXT }`
+
+---
+
+### Mock para api axios
+
+- Instale a dependencia:
+
+```bash
+yarn add axios-mock-adapter -D
+```
+
+- No arquivo `src/__tests__/hooks/auth.spec.tsx` temos várias coisas interessante...
+
+- Verificar localStorage mock:
+
+```tsx
+const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+// ...
+
+expect(setItemSpy).toHaveBeenCalledWith('@GoBarber:token', apiResponse.token);
+expect(setItemSpy).toHaveBeenCalledWith('@GoBarber:user', JSON.stringify(apiResponse.user));
+```
+
+- **Aguardar por uma alteração:
+
+```tsx
+const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+// ...
+await waitForNextUpdate();
+```
